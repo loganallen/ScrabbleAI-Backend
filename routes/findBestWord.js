@@ -23,6 +23,49 @@ Tile: {
  *
  */
 
+ const _recGenParaHorizontalSlots = (board, _r, c, len, slots) => {
+   // Return if column is outside bounds or if surpassed slot window size
+   if (_r < 0 || _r > 14 || len > 7) return slots;
+
+   // Tile is set so don't bother
+   if (board[_r][c].isSet) return slots;
+
+   // Slide slot window from left to right
+   let k = len-1;
+   while (k >= 0) {
+     let slot = [];
+     let collision = false;
+
+     for (let j=0; j<len; j++) {
+       let c2 = c-k+j;
+       if (c2 < 0 || c2 > 14) {
+         collision = true; break;
+       }
+       let space = board[_r][c2];
+       if (space.isSet) {
+         collision = true; break;
+       } else {
+         slot.push(space.location);
+       }
+     }
+
+     if (!collision) slots.push(slot);
+     k -= 1;
+   }
+
+   return _recGenParaHorizontalSlots(board, _r, c, len+1, slots);
+ }
+
+ const _genParallelHorizontalSlots = (board, r, c) => {
+   let slotsT = _recGenParaHorizontalSlots(board, r-1, c, 1, []);
+   let slotsB = _recGenParaHorizontalSlots(board, r+1, c, 1, []);
+
+   return [
+     ...slotsT,
+     ...slotsB
+   ];
+ }
+
 const _recGenPerpHorizontalSlots = (board, _r, c, slot, slots, expandLeft) => {
   // Return slot if out of bounds
   if (c < 0 || c > 14) return slots;
@@ -54,6 +97,16 @@ const _genPerpendicularHorizontalSlots = (board, r, c) => {
   ];
 }
 
+const _genHorizontalSlots = (board, r, c) => {
+  let perpSlots = _genPerpendicularHorizontalSlots(board, r, c);
+  let paraSlots = _genParallelHorizontalSlots(board, r, c);
+
+  return [
+    ...perpSlots,
+    ...paraSlots
+  ];
+}
+
 /*
  *
  * Vertical Slot Generationg Methods
@@ -71,17 +124,16 @@ const _recGenParaVerticalSlots = (board, r, _c, len, slots) => {
   let k = len-1;
   while (k >= 0) {
     let slot = [];
-    let _r = r-k;
-
-    // Out of bounds
-    if (_r < 0 || _r > 14) continue;
-
     let collision = false;
+
     for (let j=0; j<len; j++) {
-      let space = board[_r+j][_c];
+      let r2 = r-k+j;
+      if (r2 < 0 | r2 > 14) {
+        collision = true; break;
+      }
+      let space = board[r2][_c];
       if (space.isSet) {
-        collision = true;
-        break;
+        collision = true; break;
       } else {
         slot.push(space.location);
       }
@@ -97,8 +149,6 @@ const _recGenParaVerticalSlots = (board, r, _c, len, slots) => {
 const _genParallelVerticalSlots = (board, r, c) => {
   let slotsL = _recGenParaVerticalSlots(board, r, c-1, 1, []);
   let slotsR = _recGenParaVerticalSlots(board, r, c+1, 1, []);
-  console.log('slotsL', slotsL);
-  console.log('slotsR', slotsR);
 
   return [
     ...slotsL,
@@ -147,16 +197,14 @@ const _genVerticalSlots = (board, r, c) => {
   ];
 }
 
-
+/* Generate all possible slots */
 const generateSlots = (board) => {
   let slots = [];
   board.forEach((row, r) => {
     row.forEach((space, c) => {
       if (space.isSet) {
-        console.log(r,c);
         let slotsV = _genVerticalSlots(board, r, c);
-        // let slotsH = _genHorizontalSlots(board, r, c);
-        throw Error;
+        let slotsH = _genHorizontalSlots(board, r, c);
         slots = [
           ...slots,
           ...slotsV,
