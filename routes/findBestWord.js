@@ -17,11 +17,33 @@ Tile: {
 }
 */
 
-/*
- *
- * Horizontal Slot Generationg Methods
- *
- */
+/*****************************************************************************
+ *****************************  SLOT GENERATION  *****************************
+ *****************************************************************************/
+
+// Generates a list of all possible slots, which is a list of contiguous [r,c]
+const generateSlots = (board) => {
+  let slotSet = new Set();
+
+  board.forEach((row, r) => {
+    row.forEach((space, c) => {
+      if (space.isSet) {
+        let slotsV = _genVerticalSlots(board, r, c);
+        let slotsH = _genHorizontalSlots(board, r, c);
+        slotsV.forEach(slot => slotSet.add(convertFromSlot(slot)));
+        slotsH.forEach(slot => slotSet.add(convertFromSlot(slot)));
+      }
+    });
+  });
+
+  let slots = [];
+  slotSet.forEach(slotString => {
+    slots.push(convertToSlot(slotString));
+  });
+
+  console.log(`Generated ${slots.length} unique slots`);
+  return slots;
+};
 
  const _recGenParaHorizontalSlots = (board, _r, c, len, slots) => {
    // Return if column is outside bounds or if surpassed slot window size
@@ -59,8 +81,6 @@ Tile: {
  const _genParallelHorizontalSlots = (board, r, c) => {
    let slotsT = _recGenParaHorizontalSlots(board, r-1, c, 1, []);
    let slotsB = _recGenParaHorizontalSlots(board, r+1, c, 1, []);
-   console.log(slotsT.length);
-   console.log(slotsB.length);
 
    return [
      ...slotsT,
@@ -199,34 +219,72 @@ const _genVerticalSlots = (board, r, c) => {
   ];
 };
 
-/* Generate all possible slots */
-const generateSlots = (board) => {
-  let slots = new Set();
+/*****************************************************************************
+ ************************  FIND BEST WORD PLACEMENT  *************************
+ *****************************************************************************/
 
-  board.forEach((row, r) => {
-    row.forEach((space, c) => {
-      if (space.isSet) {
-        let slotsV = _genVerticalSlots(board, r, c);
-        let slotsH = _genHorizontalSlots(board, r, c);
-        slotsV.forEach(slot => slots.add(slot.convertFromSlot()));
-        slotsH.forEach(slot => slots.add(slot.convertFromSlot()));
-      }
-    });
-  });
+const findBestWordPlacement = (board, slots, hand, dictionary) => {
+  // Build dictionary with hand permutations for each possible slot length
+  let handPermutationDict = {};
+  for (let i=1; i<=hand.length; i++) {
+    handPermutationDict[i] = _handPermutations(hand, i);
+  }
 
-  return slots;
+  slots.forEach(slot => {
+    // Go through all permutations of hand tiles in this slot
+    let permutations = _handPermutations(hand, slot.length);
+    permutations.forEach(perm => {
+      // Place tiles on board
+
+      // Generate words and points
+
+      // Validate words and save point total if highest seen
+
+    })
+  })
 };
 
-/*
- * Array prototype methods to convert to/from a slot (nest arrays)
- */
-Array.prototype.convertFromSlot = function() {
-  return this.map(x => x.join('_')).join(',');
+const _handPermutations = (hand, n) => {
+
 };
 
-Array.prototype.convertToSlot = function() {
-  return this.split(',').map(x => x.split('_'));
-}
+const permute = (tiles) => {
+  let len = tiles.length;
+  let permutations = [tiles.slice()];
+  let c = new Array(len).fill(0);
+  let i = 1;
+
+  while (i < len) {
+    if (c[i] < i) {
+      let k = i % 2 && c[i];
+      let temp = tiles[i];
+      tiles[i] = tiles[k];
+      tiles[k] = temp;
+      ++c[i];
+      i = 1;
+      permutations.push(tiles.slice());
+    } else {
+      c[i] = 0;
+      ++i;
+    }
+  }
+
+  return permutations;
+};
+
+/*****************************************************************************
+ *****************************  ROUTER METHODS  ******************************
+ *****************************************************************************/
+
+/* Array prototype methods to convert from a slot array */
+const convertFromSlot = (slot) => (
+  slot.map(x => x.join('_')).join(',')
+);
+
+/* String prototype method to convert to a slot array */
+const convertToSlot = (slotString) => (
+  slotString.split(',').map(x => x.split('_').map(Number))
+);
 
 var router = express.Router();
 
@@ -237,9 +295,11 @@ router.post('/', function(req, res, next) {
   let hand = req.body.hand;
   let dictionary = req.app.get('dictionary');
 
+  console.log('Generating slots...');
   let slots = generateSlots(board);
-  console.log(slots);
-  console.log(slots.size);
+
+  console.log('Finding best word placement...');
+  findBestWordPlacement(board, slots, hand, dictionary);
 
   res.json({
     points: 0
