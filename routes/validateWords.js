@@ -5,6 +5,11 @@ const validateWords = (dictionary, words) => {
   let invalidWords = [];
 
   words.forEach(word => {
+    if (word.length > 12) {
+      valid = false;
+      invalidWords.push(word);
+      return;
+    }
     word = word.toLowerCase();
     let v = dictionary[word.length][word];
     if (!v) {
@@ -20,7 +25,6 @@ var router = express.Router();
 
 /* POST validate words played on board. */
 router.post('/', function(req, res, next) {
-  // res.send('respond with a resource');
   let words = req.body.words;
   console.log('Validating words', words);
   let dictionary = req.app.get('dictionary');

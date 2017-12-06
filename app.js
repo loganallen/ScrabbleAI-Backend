@@ -9,6 +9,8 @@ var fs = require('fs');
 var index = require('./routes/index');
 var validateWords = require('./routes/validateWords');
 var findBestWord = require('./routes/findBestWord');
+var analyzeBoardConfiguration = require('./routes/analyzeBoardConfiguration');
+var validateTilePlacement = require('./routes/validateTilePlacement');
 
 var app = express();
 
@@ -27,6 +29,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', index);
 app.use('/validateWords', validateWords.router);
 app.use('/findBestWord', findBestWord.router);
+app.use('/validateTilePlacement', validateTilePlacement.router);
+app.use('/analyzeBoardConfiguration', analyzeBoardConfiguration.router);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

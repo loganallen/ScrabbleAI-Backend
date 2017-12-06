@@ -1,21 +1,9 @@
 var express = require('express');
-var validateWordsRouter = require('./validateWords');
-var validateWords = validateWordsRouter.validateWords;
-
-/*
-board[r][c] : {
-  location: [r,c],
-  type: boardSpaceType,
-  tile: Tile,
-  isSet: boolean
-};
-
-Tile: {
-  letter: string,
-  value: number,
-  onBoard: boolean
-}
-*/
+var vwRouter = require('./validateWords');
+var validateWords = vwRouter.validateWords;
+var abcRouter = require('./analyzeBoardConfiguration');
+var analyzeBoardConfiguration = abcRouter.analyzeBoardConfiguration;
+var getRowsAndColumns = abcRouter.getRowsAndColumns;
 
 /*****************************************************************************
  *****************************  SLOT GENERATION  *****************************
@@ -36,29 +24,28 @@ const generateSlots = (board) => {
     });
   });
 
-  let slots = [];
-  slotSet.forEach(slotString => {
-    slots.push(convertToSlot(slotString));
-  });
+  let slots = [...slotSet].map(slotString =>
+    convertToSlot(slotString)
+  ).sort((a, b) => (a.length - b.length));
 
   console.log(`Generated ${slots.length} unique slots`);
   return slots;
 };
 
- const _recGenParaHorizontalSlots = (board, _r, c, len, slots) => {
+ const _recGenParaHorizontalSlots = (board, _r, c, size, slots) => {
    // Return if column is outside bounds or if surpassed slot window size
-   if (_r < 0 || _r > 14 || len > 7) return slots;
+   if (_r < 0 || _r > 14 || size > 7) return slots;
 
    // Tile is set so don't bother
    if (board[_r][c].isSet) return slots;
 
    // Slide slot window from left to right
-   let k = len-1;
+   let k = size-1;
    while (k >= 0) {
      let slot = [];
      let collision = false;
 
-     for (let j=0; j<len; j++) {
+     for (let j=0; j<size; j++) {
        let c2 = c-k+j;
        if (c2 < 0 || c2 > 14) {
          collision = true; break;
@@ -75,7 +62,7 @@ const generateSlots = (board) => {
      k -= 1;
    }
 
-   return _recGenParaHorizontalSlots(board, _r, c, len+1, slots);
+   return _recGenParaHorizontalSlots(board, _r, c, size+1, slots);
  };
 
  const _genParallelHorizontalSlots = (board, r, c) => {
@@ -135,20 +122,20 @@ const _genHorizontalSlots = (board, r, c) => {
  *
  */
 
-const _recGenParaVerticalSlots = (board, r, _c, len, slots) => {
+const _recGenParaVerticalSlots = (board, r, _c, size, slots) => {
   // Return if column is outside bounds or if surpassed slot window size
-  if (_c < 0 || _c > 14 || len > 7) return slots;
+  if (_c < 0 || _c > 14 || size > 7) return slots;
 
   // Tile is set so don't bother
   if (board[r][_c].isSet) return slots;
 
   // Slide slot window from top to bottom
-  let k = len-1;
+  let k = size-1;
   while (k >= 0) {
     let slot = [];
     let collision = false;
 
-    for (let j=0; j<len; j++) {
+    for (let j=0; j<size; j++) {
       let r2 = r-k+j;
       if (r2 < 0 | r2 > 14) {
         collision = true; break;
@@ -165,7 +152,7 @@ const _recGenParaVerticalSlots = (board, r, _c, len, slots) => {
     k -= 1;
   }
 
-  return _recGenParaVerticalSlots(board, r, _c, len+1, slots);
+  return _recGenParaVerticalSlots(board, r, _c, size+1, slots);
 };
 
 const _genParallelVerticalSlots = (board, r, c) => {
@@ -225,36 +212,88 @@ const _genVerticalSlots = (board, r, c) => {
 
 const findBestWordPlacement = (board, slots, hand, dictionary) => {
   // Build dictionary with hand permutations for each possible slot length
-  let handPermutationDict = {};
-  for (let i=1; i<=hand.length; i++) {
-    handPermutationDict[i] = _handPermutations(hand, i);
-  }
+  console.log('Getting hand permutations...');
+  let handPermutationsDict = _getHandPermutations(hand);
 
-  slots.forEach(slot => {
+  let bestBoard, bestPerm;
+  let bestPoints = 0;
+
+  console.log(`Placing tiles in ${slots.length} different slots...`);
+  slots.forEach((slot, idx) => {
+    console.log(`Slot ${idx+1}`);
     // Go through all permutations of hand tiles in this slot
-    let permutations = _handPermutations(hand, slot.length);
+    let permutations = handPermutationsDict[slot.length];
+    let tempBoard = cloneBoard(board);
     permutations.forEach(perm => {
-      // Place tiles on board
-
+      // Place tiles on temp board
+      slot.forEach(([r,c], idx) => {
+        tempBoard[r][c].tile = perm[idx];
+      });
       // Generate words and points
+      let [words, points] = analyzeBoardConfiguration(tempBoard);
+      // Validate words and save board configuration yielding the highest points
+      let [valid, _] = validateWords(dictionary, words);
+      if (valid) {
+        console.log('Valid', words, points);
+        if (points > bestPoints) {
+          bestBoard = cloneBoard(tempBoard);
+          bestPerm = perm;
+          bestPoints = points;
+        }
+      }
+    });
+  });
 
-      // Validate words and save point total if highest seen
+  hand = _updateHand(hand, bestPerm);
+  console.log(hand);
 
-    })
-  })
+  return [bestBoard, bestPoints, hand];
 };
 
-const _handPermutations = (hand, n) => {
+const _updateHand = (hand, bestPerm) => {
+  bestPerm.forEach(item => {
+    for (let idx in hand) {
+      let tile = hand[idx];
+      if (tile.letter === item.letter) {
+        tile.onBoard = true;
+        break;
+      }
+    }
+  });
 
+  return hand;
+}
+
+const _getHandPermutations = (hand) => {
+  let tileCombinations = _getCombinations(hand);
+
+  let handPermutationsDict = {};
+  tileCombinations.forEach(comb => {
+    let permutations = _permute(comb);
+    let size = comb.length;
+    if (!(size in handPermutationsDict)) {
+      handPermutationsDict[size] = [];
+    }
+    handPermutationsDict[size] = handPermutationsDict[size].concat(permutations);
+  });
+
+  return handPermutationsDict;
 };
 
-const permute = (tiles) => {
-  let len = tiles.length;
+const _getCombinations = (hand) => {
+  if (hand.length === 1) return [hand];
+
+  let sub = _getCombinations(hand.slice(1));
+  return sub.concat(sub.map(e => e.concat(hand[0])), [[hand[0]]]);
+}
+
+const _permute = (tiles) => {
+  let size = tiles.length;
   let permutations = [tiles.slice()];
-  let c = new Array(len).fill(0);
+  let c = new Array(size).fill(0);
   let i = 1;
 
-  while (i < len) {
+  while (i < size) {
     if (c[i] < i) {
       let k = i % 2 && c[i];
       let temp = tiles[i];
@@ -286,6 +325,10 @@ const convertToSlot = (slotString) => (
   slotString.split(',').map(x => x.split('_').map(Number))
 );
 
+const cloneBoard = (board) => {
+  return board.map(row => row.map(space => ( {...space} )));
+};
+
 var router = express.Router();
 
 /* POST best word placement on board. */
@@ -299,10 +342,12 @@ router.post('/', function(req, res, next) {
   let slots = generateSlots(board);
 
   console.log('Finding best word placement...');
-  findBestWordPlacement(board, slots, hand, dictionary);
+  let [newBoard, points, newHand] = findBestWordPlacement(board, slots, hand, dictionary);
 
   res.json({
-    points: 0
+    board: newBoard,
+    points: points,
+    hand: newHand
   });
 });
 
