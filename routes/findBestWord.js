@@ -54,17 +54,19 @@ Tile: {
    }
 
    return _recGenParaHorizontalSlots(board, _r, c, len+1, slots);
- }
+ };
 
  const _genParallelHorizontalSlots = (board, r, c) => {
    let slotsT = _recGenParaHorizontalSlots(board, r-1, c, 1, []);
    let slotsB = _recGenParaHorizontalSlots(board, r+1, c, 1, []);
+   console.log(slotsT.length);
+   console.log(slotsB.length);
 
    return [
      ...slotsT,
      ...slotsB
    ];
- }
+ };
 
 const _recGenPerpHorizontalSlots = (board, _r, c, slot, slots, expandLeft) => {
   // Return slot if out of bounds
@@ -85,7 +87,7 @@ const _recGenPerpHorizontalSlots = (board, _r, c, slot, slots, expandLeft) => {
   // Add newly generated slot to slots accumulator
   slots.push([...slot]);
   return _recGenPerpHorizontalSlots(board, _r, c, slot, slots, expandLeft);
-}
+};
 
 const _genPerpendicularHorizontalSlots = (board, r, c) => {
   let slotsL = _recGenPerpHorizontalSlots(board, r, c-1, [], [], true);
@@ -95,7 +97,7 @@ const _genPerpendicularHorizontalSlots = (board, r, c) => {
     ...slotsL,
     ...slotsR
   ];
-}
+};
 
 const _genHorizontalSlots = (board, r, c) => {
   let perpSlots = _genPerpendicularHorizontalSlots(board, r, c);
@@ -105,7 +107,7 @@ const _genHorizontalSlots = (board, r, c) => {
     ...perpSlots,
     ...paraSlots
   ];
-}
+};
 
 /*
  *
@@ -144,7 +146,7 @@ const _recGenParaVerticalSlots = (board, r, _c, len, slots) => {
   }
 
   return _recGenParaVerticalSlots(board, r, _c, len+1, slots);
-}
+};
 
 const _genParallelVerticalSlots = (board, r, c) => {
   let slotsL = _recGenParaVerticalSlots(board, r, c-1, 1, []);
@@ -154,7 +156,7 @@ const _genParallelVerticalSlots = (board, r, c) => {
     ...slotsL,
     ...slotsR
   ];
-}
+};
 
 const _recGenPerpVerticalSlots = (board, r, _c, slot, slots, expandUp) => {
   // Return slot if out of bounds
@@ -175,7 +177,7 @@ const _recGenPerpVerticalSlots = (board, r, _c, slot, slots, expandUp) => {
   // Add newly expanded slot to slots accumulator
   slots.push([...slot]);
   return _recGenPerpVerticalSlots(board, r, _c, slot, slots, expandUp);
-}
+};
 
 const _genPerpendicularVerticalSlots = (board, r, c) => {
   let slotsT = _recGenPerpVerticalSlots(board, r-1, c, [], [], true);
@@ -185,7 +187,7 @@ const _genPerpendicularVerticalSlots = (board, r, c) => {
     ...slotsT,
     ...slotsB
   ];
-}
+};
 
 const _genVerticalSlots = (board, r, c) => {
   let perpSlots = _genPerpendicularVerticalSlots(board, r, c);
@@ -195,26 +197,35 @@ const _genVerticalSlots = (board, r, c) => {
     ...perpSlots,
     ...paraSlots
   ];
-}
+};
 
 /* Generate all possible slots */
 const generateSlots = (board) => {
-  let slots = [];
+  let slots = new Set();
+
   board.forEach((row, r) => {
     row.forEach((space, c) => {
       if (space.isSet) {
         let slotsV = _genVerticalSlots(board, r, c);
         let slotsH = _genHorizontalSlots(board, r, c);
-        slots = [
-          ...slots,
-          ...slotsV,
-          ...slotsH
-        ];
+        slotsV.forEach(slot => slots.add(slot.convertFromSlot()));
+        slotsH.forEach(slot => slots.add(slot.convertFromSlot()));
       }
     });
   });
 
   return slots;
+};
+
+/*
+ * Array prototype methods to convert to/from a slot (nest arrays)
+ */
+Array.prototype.convertFromSlot = function() {
+  return this.map(x => x.join('_')).join(',');
+};
+
+Array.prototype.convertToSlot = function() {
+  return this.split(',').map(x => x.split('_'));
 }
 
 var router = express.Router();
@@ -227,7 +238,8 @@ router.post('/', function(req, res, next) {
   let dictionary = req.app.get('dictionary');
 
   let slots = generateSlots(board);
-  console.log(slots.length);
+  console.log(slots);
+  console.log(slots.size);
 
   res.json({
     points: 0
