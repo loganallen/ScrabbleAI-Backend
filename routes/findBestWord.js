@@ -214,6 +214,7 @@ const findBestWordPlacement = (board, slots, hand, dictionary) => {
   // Build dictionary with hand permutations for each possible slot length
   console.log('Getting hand permutations...');
   let handPermutationsDict = _getHandPermutations(hand);
+  console.log(handPermutationsDict);
 
   let bestBoard, bestPerm;
   let bestPoints = 0;
@@ -221,6 +222,7 @@ const findBestWordPlacement = (board, slots, hand, dictionary) => {
   console.log(`Placing tiles in ${slots.length} different slots...`);
   slots.forEach((slot, idx) => {
     console.log(`Slot ${idx+1}`);
+    if (slot.length > hand.length) return;
     // Go through all permutations of hand tiles in this slot
     let permutations = handPermutationsDict[slot.length];
     let tempBoard = cloneBoard(board);
@@ -245,7 +247,6 @@ const findBestWordPlacement = (board, slots, hand, dictionary) => {
   });
 
   hand = _updateHand(hand, bestPerm);
-  console.log(hand);
 
   return [bestBoard, bestPoints, hand];
 };
@@ -338,11 +339,21 @@ router.post('/', function(req, res, next) {
   let hand = req.body.hand;
   let dictionary = req.app.get('dictionary');
 
+  if (hand.length < 1) {
+    res.json({
+      board: board,
+      points: 0,
+      hand: hand
+    });
+    return;
+  }
+
   console.log('Generating slots...');
   let slots = generateSlots(board);
 
   console.log('Finding best word placement...');
   let [newBoard, points, newHand] = findBestWordPlacement(board, slots, hand, dictionary);
+  console.log(`Bot scored ${points} points`);
 
   res.json({
     board: newBoard,
