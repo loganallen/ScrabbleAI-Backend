@@ -214,14 +214,13 @@ const findBestWordPlacement = (board, slots, hand, dictionary) => {
   // Build dictionary with hand permutations for each possible slot length
   console.log('Getting hand permutations...');
   let handPermutationsDict = _getHandPermutations(hand);
-  console.log(handPermutationsDict);
 
   let bestBoard, bestPerm;
   let bestPoints = 0;
 
   console.log(`Placing tiles in ${slots.length} different slots...`);
   slots.forEach((slot, idx) => {
-    console.log(`Slot ${idx+1}`);
+    // console.log(`Slot ${idx+1}`);
     if (slot.length > hand.length) return;
     // Go through all permutations of hand tiles in this slot
     let permutations = handPermutationsDict[slot.length];
@@ -236,7 +235,7 @@ const findBestWordPlacement = (board, slots, hand, dictionary) => {
       // Validate words and save board configuration yielding the highest points
       let [valid, _] = validateWords(dictionary, words);
       if (valid) {
-        console.log('Valid', words, points);
+        // console.log('Valid', words, points);
         if (points > bestPoints) {
           bestBoard = cloneBoard(tempBoard);
           bestPerm = perm;
@@ -334,7 +333,7 @@ var router = express.Router();
 
 /* POST best word placement on board. */
 router.post('/', function(req, res, next) {
-  console.log('Finding best word...');
+  console.log('Finding best word endpoint');
   let board = req.body.board;
   let hand = req.body.hand;
   let dictionary = req.app.get('dictionary');
