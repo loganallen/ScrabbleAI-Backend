@@ -1,16 +1,7 @@
 var express = require('express');
-var keyMirror = require('keymirror');
-var vtpRouter = require('./validateTilePlacement');
-var validateTilePlacement = vtpRouter.validateTilePlacement;
+var utils = require('../utils');
 
-const BoardSpaceTypes = keyMirror({
-  'START': null,
-  'DEFAULT': null,
-  'DOUBLE_WORD': null,
-  'TRIPLE_WORD': null,
-  'DOUBLE_LETTER': null,
-  'TRIPLE_LETTER': null
-});
+var BoardSpaceTypes = utils.BoardSpaceTypes;
 
 const getRowsAndColumns = (board) => {
   let rows = new Set();
@@ -201,7 +192,6 @@ var router = express.Router();
 /* POST analyze board configuration and return. */
 router.post('/', function(req, res, next) {
   let board = req.body.board;
-  console.log('Analyzing board config');
 
   let [words, points] = analyzeBoardConfiguration(board);
 

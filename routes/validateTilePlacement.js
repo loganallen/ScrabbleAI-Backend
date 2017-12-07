@@ -1,5 +1,6 @@
 var express = require('express');
 var abcRouter = require('./analyzeBoardConfiguration');
+
 var getRowsAndColumns = abcRouter.getRowsAndColumns;
 
 const _isAdjacentToSetTile = (board, r, c) => {
@@ -14,7 +15,6 @@ const _isAdjacentToSetTile = (board, r, c) => {
 
 // Validate tile placement on board
 const validateTilePlacement = (board, firstTurn) => {
-  console.log('Validating tile placement...');
   let [rows, cols] = getRowsAndColumns(board);
 
   if (firstTurn) {
@@ -66,16 +66,20 @@ var router = express.Router();
 router.post('/', function(req, res, next) {
   let board = req.body.board;
   let firstTurn = req.body.firstTurn;
-  console.log('Validating tile placement');
 
-  let valid = validateTilePlacement(board, firstTurn);
-
-  res.json({
-    valid: valid
-  });
+  try {
+    let valid = validateTilePlacement(board, firstTurn);
+    res.json({
+      valid: valid
+    });
+  } catch (e) {
+    res.json({
+      valid: false,
+      error: e.message
+    });
+  }
 });
 
 module.exports = {
-  router,
-  validateTilePlacement
+  router
 };
