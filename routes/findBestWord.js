@@ -7,8 +7,10 @@ var validateWords = vwRouter.validateWords;
 var analyzeBoardConfiguration = abcRouter.analyzeBoardConfiguration;
 var getRowsAndColumns = abcRouter.getRowsAndColumns;
 var cloneBoard = utils.cloneBoard;
+var specialLetters = utils.specialLetters;
 
 const EFFICIENCY_RATIO = 0.7;
+const SPECIAL_EFFICIENCY_RATIO = 0.5;
 
 /*****************************************************************************
  *****************************  SLOT GENERATION  *****************************
@@ -33,7 +35,6 @@ const generateSlots = (board) => {
     convertToSlot(slotString)
   ).sort((a, b) => (a.length - b.length));
 
-  console.log(`Generated ${slots.length} unique slots`);
   return slots;
 };
 
@@ -272,6 +273,7 @@ const findBestWordPlacement = (board, slots, hand, dictionary) => {
   // Build dictionary with hand permutations for each possible slot length
   console.log('Getting hand permutations...');
   let permutationsDict = _getPermutations(hand);
+  console.log('DONE: Got all hand permutations');
 
   let bestBoard = [];
   let bestPerm = [];
@@ -279,7 +281,7 @@ const findBestWordPlacement = (board, slots, hand, dictionary) => {
   let bestPoints = [0, 0];
   let bestWords = [];
 
-  console.log(`Placing tiles in ${slots.length} different slots...`);
+  console.log(`Placing tiles in slots...`);
   slots.forEach((slot, idx) => {
     // console.log(`Slot ${idx+1}`);
     // Skip slot if longer than hand length
@@ -301,16 +303,17 @@ const findBestWordPlacement = (board, slots, hand, dictionary) => {
         tempBoard[r][c].tile = perm[idx];
       });
 
-      // Generate words and points
+      // Generate board words and points and validate those words
       let [words, points] = analyzeBoardConfiguration(tempBoard);
-
-      // Validate words and save board configuration using efficiency
-      // ratio and board points
       [valid, _] = validateWords(dictionary, words);
+
+      // If valid, save board configuration using efficiency
+      // ratio and board points
       if (valid) {
         let ratio = _getEfficiencyRatio(perm, points);
-        // console.log(words, points, ratio);
-        if (ratio > EFFICIENCY_RATIO) {
+        let special = _containsSpecialLetters(perm);
+        console.log(words, points, ratio);
+        if (ratio > EFFICIENCY_RATIO || (special && ratio > SPECIAL_EFFICIENCY_RATIO)) {
           if (points > bestPoints[0]) {
             bestBoard[0] = cloneBoard(tempBoard);
             bestPerm[0] = perm;
@@ -319,7 +322,7 @@ const findBestWordPlacement = (board, slots, hand, dictionary) => {
             bestRatio[0] = ratio;
           }
         } else {
-          if (ratio > bestRatio[1]) {
+          if (ratio > bestRatio[1] && !special) {
             bestBoard[1] = cloneBoard(tempBoard);
             bestPerm[1] = perm;
             bestPoints[1] = points;
@@ -332,10 +335,10 @@ const findBestWordPlacement = (board, slots, hand, dictionary) => {
     });
   });
 
-  console.log('here');
   let idx = bestPoints[0] > 0 ? 0 : 1;
   console.log(`** [${bestWords[idx]}] | ${bestPoints[idx]} points | ratio: ${bestRatio[idx]}`);
 
+  // throw Error;
   return [
     bestBoard[idx],
     bestWords[idx],
@@ -363,6 +366,13 @@ const _getEfficiencyRatio = (tiles, points) => {
   return 1 - (faceValue / points);
 };
 
+const _containsSpecialLetters = (perm) => {
+  let specialLetters = perm.reduce((acc, tile) => {
+    return acc || (tile.value >= 8);
+  }, false);
+  return specialLetters;
+};
+
 /*****************************************************************************
  *****************************  ROUTER METHODS  ******************************
  *****************************************************************************/
@@ -381,12 +391,12 @@ var router = express.Router();
 
 /* POST best word placement on board. */
 router.post('/', function(req, res, next) {
-  console.log('Finding best word endpoint');
   let board = req.body.board;
   let hand = req.body.hand;
   let dictionary = req.app.get('dictionary');
 
   if (hand.length < 1) {
+    console.log('Empty hand');
     res.json({
       board: board,
       points: 0,
@@ -397,9 +407,11 @@ router.post('/', function(req, res, next) {
 
   console.log('Generating slots...');
   let slots = generateSlots(board);
+  console.log(`DONE: Generated ${slots.length} unique slots`);
 
   console.log('Finding best word placement...');
   let [newBoard, words, points, newHand] = findBestWordPlacement(board, slots, hand, dictionary);
+  console.log('DONE: Found best word placement');
 
   res.json({
     board: newBoard,
