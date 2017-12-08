@@ -260,6 +260,10 @@ const _permute = (tiles) => {
   return permutations;
 };
 
+const _convertPermToWord = (perm) => {
+  return perm.reduce((acc, tile) => acc + tile.letter, '');
+};
+
 /*****************************************************************************
  ************************  FIND BEST WORD PLACEMENT  *************************
  *****************************************************************************/
@@ -278,23 +282,35 @@ const findBestWordPlacement = (board, slots, hand, dictionary) => {
   console.log(`Placing tiles in ${slots.length} different slots...`);
   slots.forEach((slot, idx) => {
     // console.log(`Slot ${idx+1}`);
-    if (slot.length > hand.length || slot.length > 5) return;
+    // Skip slot if longer than hand length
+    if (slot.length > hand.length) return;
+
     // Go through all permutations of hand tiles in this slot
     let permutations = permutationsDict[slot.length];
     let tempBoard = cloneBoard(board);
+
     permutations.forEach(perm => {
+      // Skip permutation if longer than 1 letter and is not a valid word
+      if (perm.length > 1) {
+        let [valid, _] = validateWords(dictionary, [_convertPermToWord(perm)]);
+        if (!valid) return;
+      }
+
       // Place tiles on temp board
       slot.forEach(([r,c], idx) => {
         tempBoard[r][c].tile = perm[idx];
       });
+
       // Generate words and points
       let [words, points] = analyzeBoardConfiguration(tempBoard);
-      // Validate words and save board configuration yielding the highest points
-      let [valid, _] = validateWords(dictionary, words);
+
+      // Validate words and save board configuration using efficiency
+      // ratio and board points
+      [valid, _] = validateWords(dictionary, words);
       if (valid) {
         let ratio = _getEfficiencyRatio(perm, points);
+        // console.log(words, points, ratio);
         if (ratio > EFFICIENCY_RATIO) {
-          // console.log(words, points, 'ratio:', ratio);
           if (points > bestPoints[0]) {
             bestBoard[0] = cloneBoard(tempBoard);
             bestPerm[0] = perm;
@@ -303,7 +319,7 @@ const findBestWordPlacement = (board, slots, hand, dictionary) => {
             bestRatio[0] = ratio;
           }
         } else {
-          if (points > bestPoints[1]) {
+          if (ratio > bestRatio[1]) {
             bestBoard[1] = cloneBoard(tempBoard);
             bestPerm[1] = perm;
             bestPoints[1] = points;
@@ -312,9 +328,11 @@ const findBestWordPlacement = (board, slots, hand, dictionary) => {
           }
         }
       }
+
     });
   });
 
+  console.log('here');
   let idx = bestPoints[0] > 0 ? 0 : 1;
   console.log(`** [${bestWords[idx]}] | ${bestPoints[idx]} points | ratio: ${bestRatio[idx]}`);
 
