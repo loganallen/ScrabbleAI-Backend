@@ -1,7 +1,8 @@
 var express = require('express');
 var utils = require('../utils');
 
-var BoardSpaceTypes = utils.BoardSpaceTypes;
+const BoardSpaceTypes = utils.BoardSpaceTypes;
+const BINGO_BONUS = utils.BINGO_BONUS;
 
 const getRowsAndColumns = (board) => {
   let rows = new Set();
@@ -150,7 +151,7 @@ const _verticalSearch = (board, r, _c) => {
 };
 
 // Generate new words on board and the total points
-const analyzeBoardConfiguration = (board) => {
+const analyzeBoardConfiguration = (board, numTilesPlayed) => {
   // console.log('Generating words and points...');
   let [rows, cols] = getRowsAndColumns(board);
   let words = [];
@@ -182,18 +183,31 @@ const analyzeBoardConfiguration = (board) => {
     });
   }
 
+  // Add bingo bonus points for clearing out the hand
+  totalPoints += (numTilesPlayed === 7) ? BINGO_BONUS : 0;
+
   // Filter out one letter words
   words = words.filter(word => word.length > 1);
   return [words, totalPoints];
 };
 
+/*****************************************************************************
+ *****************************  ROUTER METHODS  ******************************
+ *****************************************************************************/
+
 var router = express.Router();
+
+const _getNumTilesOnBoard = (hand) => {
+  return hand.reduce((acc, tile) => acc + Number(tile.onBoard), 0);
+};
 
 /* POST analyze board configuration and return. */
 router.post('/', function(req, res, next) {
   let board = req.body.board;
+  let hand = req.body.hand;
 
-  let [words, points] = analyzeBoardConfiguration(board);
+  let numTilesPlayed = _getNumTilesOnBoard(hand);
+  let [words, points] = analyzeBoardConfiguration(board, numTilesPlayed);
 
   res.json({
     words: words,

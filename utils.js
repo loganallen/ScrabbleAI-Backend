@@ -1,5 +1,9 @@
 var keyMirror = require('keymirror');
 
+const EFFICIENCY_RATIO = 0.7;
+const SPECIAL_EFFICIENCY_RATIO = 0.5;
+const BINGO_BONUS = 50;
+
 const BoardSpaceTypes = keyMirror({
   'START': null,
   'DEFAULT': null,
@@ -25,5 +29,8 @@ const cloneBoard = (board) => {
 
 module.exports = {
   BoardSpaceTypes,
-  cloneBoard
+  cloneBoard,
+  EFFICIENCY_RATIO,
+  SPECIAL_EFFICIENCY_RATIO,
+  BINGO_BONUS
 };

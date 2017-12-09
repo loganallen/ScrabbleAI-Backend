@@ -9,27 +9,37 @@ var getRowsAndColumns = abcRouter.getRowsAndColumns;
 var cloneBoard = utils.cloneBoard;
 var specialLetters = utils.specialLetters;
 
-const EFFICIENCY_RATIO = 0.7;
-const SPECIAL_EFFICIENCY_RATIO = 0.5;
+const EFFICIENCY_RATIO = utils.EFFICIENCY_RATIO;
+const SPECIAL_EFFICIENCY_RATIO = utils.SPECIAL_EFFICIENCY_RATIO;
 
 /*****************************************************************************
  *****************************  SLOT GENERATION  *****************************
  *****************************************************************************/
 
 // Generates a list of all possible slots, which is a list of contiguous [r,c]
-const generateSlots = (board) => {
+const generateSlots = (board, firstTurn) => {
   let slotSet = new Set();
 
-  board.forEach((row, r) => {
-    row.forEach((space, c) => {
-      if (space.isSet) {
-        let slotsV = _genVerticalSlots(board, r, c);
-        let slotsH = _genHorizontalSlots(board, r, c);
-        slotsV.forEach(slot => slotSet.add(convertFromSlot(slot)));
-        slotsH.forEach(slot => slotSet.add(convertFromSlot(slot)));
-      }
+  if (firstTurn) {
+    // Generate slots going through [7,7]
+    let [r, c, minLen] = [7, 7, 2];
+    let slotsV = _recGenParaVerticalSlots(board, 7, 7, 2, []);
+    let slotsH = _recGenParaHorizontalSlots(board, r, c, 2, []);
+    slotsV.forEach(slot => slotSet.add(convertFromSlot(slot)));
+    slotsH.forEach(slot => slotSet.add(convertFromSlot(slot)));
+  } else {
+    // Generate all possible slots touching each set tile
+    board.forEach((row, r) => {
+      row.forEach((space, c) => {
+        if (space.isSet) {
+          let slotsV = _genVerticalSlots(board, r, c);
+          let slotsH = _genHorizontalSlots(board, r, c);
+          slotsV.forEach(slot => slotSet.add(convertFromSlot(slot)));
+          slotsH.forEach(slot => slotSet.add(convertFromSlot(slot)));
+        }
+      });
     });
-  });
+  }
 
   let slots = [...slotSet].map(slotString =>
     convertToSlot(slotString)
@@ -277,7 +287,7 @@ const findBestWordPlacement = (board, slots, hand, dictionary) => {
 
   let bestBoard = [];
   let bestPerm = [];
-  let bestRatio = [0, 0];
+  let bestRatio = [-1, -1];
   let bestPoints = [0, 0];
   let bestWords = [];
 
@@ -304,7 +314,7 @@ const findBestWordPlacement = (board, slots, hand, dictionary) => {
       });
 
       // Generate board words and points and validate those words
-      let [words, points] = analyzeBoardConfiguration(tempBoard);
+      let [words, points] = analyzeBoardConfiguration(tempBoard, perm.length);
       [valid, _] = validateWords(dictionary, words);
 
       // If valid, save board configuration using efficiency
@@ -312,33 +322,40 @@ const findBestWordPlacement = (board, slots, hand, dictionary) => {
       if (valid) {
         let ratio = _getEfficiencyRatio(perm, points);
         let special = _containsSpecialLetters(perm);
-        console.log(words, points, ratio);
+        // if (special || ratio > EFFICIENCY_RATIO) console.log(words, points, ratio);
+        let idx;
+
+        // Heuristic checks on point ratios
         if (ratio > EFFICIENCY_RATIO || (special && ratio > SPECIAL_EFFICIENCY_RATIO)) {
-          if (points > bestPoints[0]) {
-            bestBoard[0] = cloneBoard(tempBoard);
-            bestPerm[0] = perm;
-            bestPoints[0] = points;
-            bestWords[0] = words;
-            bestRatio[0] = ratio;
-          }
+          if (points > bestPoints[0]) idx = 0;
         } else {
-          if (ratio > bestRatio[1] && !special) {
-            bestBoard[1] = cloneBoard(tempBoard);
-            bestPerm[1] = perm;
-            bestPoints[1] = points;
-            bestWords[1] = words;
-            bestRatio[1] = ratio;
+          if (ratio === 0) {
+            // Don't use special letters on weak start
+            if (points > bestPoints[1] && !special) idx = 1;
+          } else if (ratio > bestRatio[1] && !special) {
+            idx = 1;
           }
+        }
+
+        // Update best temporary variables if applicable
+        if (idx != null) {
+          bestBoard[idx] = cloneBoard(tempBoard);
+          bestPerm[idx] = perm;
+          bestPoints[idx] = points;
+          bestWords[idx] = words;
+          bestRatio[idx] = ratio;
         }
       }
 
     });
   });
 
+  // Return original board and hand if not valid moves available
+  if (bestWords.length === 0) return [board, [], 0, hand];
+
   let idx = bestPoints[0] > 0 ? 0 : 1;
   console.log(`** [${bestWords[idx]}] | ${bestPoints[idx]} points | ratio: ${bestRatio[idx]}`);
 
-  // throw Error;
   return [
     bestBoard[idx],
     bestWords[idx],
@@ -393,6 +410,7 @@ var router = express.Router();
 router.post('/', function(req, res, next) {
   let board = req.body.board;
   let hand = req.body.hand;
+  let firstTurn = req.body.firstTurn;
   let dictionary = req.app.get('dictionary');
 
   if (hand.length < 1) {
@@ -406,7 +424,7 @@ router.post('/', function(req, res, next) {
   }
 
   console.log('Generating slots...');
-  let slots = generateSlots(board);
+  let slots = generateSlots(board, firstTurn);
   console.log(`DONE: Generated ${slots.length} unique slots`);
 
   console.log('Finding best word placement...');
