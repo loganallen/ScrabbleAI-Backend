@@ -279,7 +279,7 @@ const _convertPermToWord = (perm) => {
  ************************  FIND BEST WORD PLACEMENT  *************************
  *****************************************************************************/
 
-const findBestWordPlacement = (board, slots, hand, dictionary) => {
+const findBestWordPlacement = (board, slots, hand, dictionary, isGreedy) => {
   // Build dictionary with hand permutations for each possible slot length
   console.log('Getting hand permutations...');
   let permutationsDict = _getPermutations(hand);
@@ -320,30 +320,40 @@ const findBestWordPlacement = (board, slots, hand, dictionary) => {
       // If valid, save board configuration using efficiency
       // ratio and board points
       if (valid) {
-        let ratio = _getEfficiencyRatio(perm, points);
-        let special = _containsSpecialLetters(perm);
-        // if (special || ratio > EFFICIENCY_RATIO) console.log(words, points, ratio);
         let idx;
 
-        // Heuristic checks on point ratios
-        if (ratio > EFFICIENCY_RATIO || (special && ratio > SPECIAL_EFFICIENCY_RATIO)) {
-          if (points > bestPoints[0]) idx = 0;
-        } else {
-          if (ratio === 0) {
-            // Don't use special letters on weak start
-            if (points > bestPoints[1] && !special) idx = 1;
-          } else if (ratio > bestRatio[1] && !special) {
-            idx = 1;
+        if (isGreedy) {
+          if (points > bestPoints[0]) {
+            bestBoard[0] = cloneBoard(tempBoard);
+            bestPerm[0] = perm;
+            bestPoints[0] = points;
+            bestWords[0] = words;
+            bestRatio[0] = -1;
           }
-        }
+        } else {
+          let ratio = _getEfficiencyRatio(perm, points);
+          let special = _containsSpecialLetters(perm);
 
-        // Update best temporary variables if applicable
-        if (idx != null) {
-          bestBoard[idx] = cloneBoard(tempBoard);
-          bestPerm[idx] = perm;
-          bestPoints[idx] = points;
-          bestWords[idx] = words;
-          bestRatio[idx] = ratio;
+          // Heuristic checks on point ratios
+          if (ratio > EFFICIENCY_RATIO || (special && ratio > SPECIAL_EFFICIENCY_RATIO)) {
+            if (points > bestPoints[0]) idx = 0;
+          } else {
+            if (ratio === 0) {
+              // Don't use special letters on weak start
+              if (points > bestPoints[1] && !special) idx = 1;
+            } else if (ratio > bestRatio[1] && !special) {
+              idx = 1;
+            }
+          }
+
+          // Update best temporary variables if applicable
+          if (idx != null) {
+            bestBoard[idx] = cloneBoard(tempBoard);
+            bestPerm[idx] = perm;
+            bestPoints[idx] = points;
+            bestWords[idx] = words;
+            bestRatio[idx] = ratio ? ratio : 0;
+          }
         }
       }
 
@@ -354,6 +364,7 @@ const findBestWordPlacement = (board, slots, hand, dictionary) => {
   if (bestWords.length === 0) return [board, [], 0, hand];
 
   let idx = bestPoints[0] > 0 ? 0 : 1;
+  if (isGreedy) console.log('GREEDY');
   console.log(`** [${bestWords[idx]}] | ${bestPoints[idx]} points | ratio: ${bestRatio[idx]}`);
 
   return [
@@ -411,7 +422,9 @@ router.post('/', function(req, res, next) {
   let board = req.body.board;
   let hand = req.body.hand;
   let firstTurn = req.body.firstTurn;
+  let isGreedy = req.body.isGreedy;
   let dictionary = req.app.get('dictionary');
+  console.log(isGreedy);
 
   if (hand.length < 1) {
     console.log('Empty hand');
@@ -428,7 +441,7 @@ router.post('/', function(req, res, next) {
   console.log(`DONE: Generated ${slots.length} unique slots`);
 
   console.log('Finding best word placement...');
-  let [newBoard, words, points, newHand] = findBestWordPlacement(board, slots, hand, dictionary);
+  let [newBoard, words, points, newHand] = findBestWordPlacement(board, slots, hand, dictionary, isGreedy);
   console.log('DONE: Found best word placement');
 
   res.json({

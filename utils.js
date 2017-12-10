@@ -1,6 +1,6 @@
 var keyMirror = require('keymirror');
 
-const EFFICIENCY_RATIO = 0.7;
+const EFFICIENCY_RATIO = 0.65;
 const SPECIAL_EFFICIENCY_RATIO = 0.5;
 const BINGO_BONUS = 50;
 
