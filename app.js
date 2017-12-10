@@ -82,10 +82,6 @@ for (var i=2; i<13; i++) {
  }
 }
 
-console.log(Object.keys(begDict).length);
-console.log(Object.keys(interDict).length);
-console.log(Object.keys(expertDict).length);
-
 console.log('DONE: Finished loading dictionaries');
 app.set('dictionary', {
   [utils.DictionaryLevel.BEGINNER]: begDict,

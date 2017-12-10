@@ -8,6 +8,7 @@ var analyzeBoardConfiguration = abcRouter.analyzeBoardConfiguration;
 var getRowsAndColumns = abcRouter.getRowsAndColumns;
 var cloneBoard = utils.cloneBoard;
 var specialLetters = utils.specialLetters;
+var DictionaryLevel = utils.DictionaryLevel;
 
 const EFFICIENCY_RATIO = utils.EFFICIENCY_RATIO;
 const SPECIAL_EFFICIENCY_RATIO = utils.SPECIAL_EFFICIENCY_RATIO;
@@ -279,7 +280,9 @@ const _convertPermToWord = (perm) => {
  ************************  FIND BEST WORD PLACEMENT  *************************
  *****************************************************************************/
 
-const findBestWordPlacement = (board, slots, hand, dictionary, isGreedy) => {
+const findBestWordPlacement = (board, slots, hand, dictionary, isGreedy, level) => {
+  var dictionary = dictionary[level.toUpperCase()];
+
   // Build dictionary with hand permutations for each possible slot length
   console.log('Getting hand permutations...');
   let permutationsDict = _getPermutations(hand);
@@ -321,7 +324,7 @@ const findBestWordPlacement = (board, slots, hand, dictionary, isGreedy) => {
       // ratio and board points
       if (valid) {
         let idx;
-        if (isGreedy) {
+        if (isGreedy || level === DictionaryLevel.BEGINNER) {
           if (points > bestPoints[0]) {
             bestBoard[0] = cloneBoard(tempBoard);
             bestPerm[0] = perm;
@@ -423,8 +426,7 @@ router.post('/', function(req, res, next) {
   let firstTurn = req.body.firstTurn;
   let isGreedy = req.body.isGreedy;
   let level = req.body.level;
-  let dictionary = req.app.get('dictionary')[level.toUpperCase()];
-  console.log('using ' + Object.keys(dictionary).length + ' length dict');
+  let dictionary = req.app.get('dictionary');
 
   if (hand.length < 1) {
     console.log('Empty hand');
@@ -442,7 +444,7 @@ router.post('/', function(req, res, next) {
 
   console.log('Finding best word placement...');
   let [newBoard, words, points, newHand] = findBestWordPlacement(
-    board, slots, hand, dictionary, isGreedy
+    board, slots, hand, dictionary, isGreedy, level
   );
   console.log('DONE: Found best word placement');
 
