@@ -10,8 +10,8 @@ var cloneBoard = utils.cloneBoard;
 var specialLetters = utils.specialLetters;
 var DictionaryLevel = utils.DictionaryLevel;
 
-const EFFICIENCY_RATIO = utils.EFFICIENCY_RATIO;
-const SPECIAL_EFFICIENCY_RATIO = utils.SPECIAL_EFFICIENCY_RATIO;
+const EFFICIENCY_THRESHOLD = utils.EFFICIENCY_THRESHOLD;
+const SPECIAL_EFFICIENCY_THRESHOLD = utils.SPECIAL_EFFICIENCY_THRESHOLD;
 
 /*****************************************************************************
  *****************************  SLOT GENERATION  *****************************
@@ -337,7 +337,7 @@ const findBestWordPlacement = (board, slots, hand, dictionary, isGreedy, level) 
           let special = _containsSpecialLetters(perm);
 
           // Heuristic checks on point ratios
-          if (ratio > EFFICIENCY_RATIO || (special && ratio > SPECIAL_EFFICIENCY_RATIO)) {
+          if (ratio >= EFFICIENCY_THRESHOLD || (special && ratio >= SPECIAL_EFFICIENCY_THRESHOLD)) {
             if (points > bestPoints[0]) idx = 0;
           } else {
             if (ratio === 0) {

@@ -1,7 +1,7 @@
 var keyMirror = require('keymirror');
 
-const EFFICIENCY_RATIO = 0.65;
-const SPECIAL_EFFICIENCY_RATIO = 0.5;
+const EFFICIENCY_THRESHOLD = 0.65;
+const SPECIAL_EFFICIENCY_THRESHOLD = 0.5;
 const BINGO_BONUS = 50;
 
 const DictionaryLevel = keyMirror({
@@ -36,8 +36,8 @@ const cloneBoard = (board) => {
 module.exports = {
   BoardSpaceTypes,
   cloneBoard,
-  EFFICIENCY_RATIO,
-  SPECIAL_EFFICIENCY_RATIO,
+  EFFICIENCY_THRESHOLD,
+  SPECIAL_EFFICIENCY_THRESHOLD,
   BINGO_BONUS,
   DictionaryLevel
 };
