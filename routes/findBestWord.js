@@ -321,7 +321,6 @@ const findBestWordPlacement = (board, slots, hand, dictionary, isGreedy) => {
       // ratio and board points
       if (valid) {
         let idx;
-
         if (isGreedy) {
           if (points > bestPoints[0]) {
             bestBoard[0] = cloneBoard(tempBoard);
@@ -423,8 +422,9 @@ router.post('/', function(req, res, next) {
   let hand = req.body.hand;
   let firstTurn = req.body.firstTurn;
   let isGreedy = req.body.isGreedy;
-  let dictionary = req.app.get('dictionary');
-  console.log(isGreedy);
+  let level = req.body.level;
+  let dictionary = req.app.get('dictionary')[level.toUpperCase()];
+  console.log('using ' + Object.keys(dictionary).length + ' length dict');
 
   if (hand.length < 1) {
     console.log('Empty hand');
@@ -441,7 +441,9 @@ router.post('/', function(req, res, next) {
   console.log(`DONE: Generated ${slots.length} unique slots`);
 
   console.log('Finding best word placement...');
-  let [newBoard, words, points, newHand] = findBestWordPlacement(board, slots, hand, dictionary, isGreedy);
+  let [newBoard, words, points, newHand] = findBestWordPlacement(
+    board, slots, hand, dictionary, isGreedy
+  );
   console.log('DONE: Found best word placement');
 
   res.json({

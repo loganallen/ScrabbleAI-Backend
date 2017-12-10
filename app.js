@@ -11,6 +11,7 @@ var validateWords = require('./routes/validateWords');
 var findBestWord = require('./routes/findBestWord');
 var analyzeBoardConfiguration = require('./routes/analyzeBoardConfiguration');
 var validateTilePlacement = require('./routes/validateTilePlacement');
+var utils = require('./utils');
 
 var app = express();
 
@@ -50,23 +51,46 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
-// load word dictionaries
+// Load all of the word dictionaries
 console.log('Generating word dictionaries...');
-var wordsDict = {};
+var begDict = {};
+try {
+  let filename = '../data/beginner_words.csv';
+  let words = fs.readFileSync(filename, 'utf8');
+  words.split(',').forEach(word => { begDict[word] = word; });
+} catch(e) {
+ console.log('Error loading beginner dictionary', e.stack);
+}
+
+var interDict = {};
+try {
+  let filename = '../data/intermediate_words.csv';
+  let words = fs.readFileSync(filename, 'utf8');
+  words.split(',').forEach(word => { interDict[word] = word; });
+} catch(e) {
+ console.log('Error loading intermediate dictionary', e.stack);
+}
+
+var expertDict = {};
 for (var i=2; i<13; i++) {
   try {
-   var filename = `../data/${i}_letter_words.csv`;
-   var words = fs.readFileSync(filename, 'utf8');
-   var dict = {};
-   words.split(',').forEach(word => {
-    dict[word] = word;
-   });
-   wordsDict[i] = dict;
+   let filename = `../data/${i}_letter_words.csv`;
+   let words = fs.readFileSync(filename, 'utf8');
+   words.split(',').forEach(word => { expertDict[word] = word; });
  } catch(e) {
-  console.log('Error', e.stack);
+  console.log('Error loading expert dictionary', e.stack);
  }
 }
-console.log('Finished');
-app.set('dictionary', wordsDict);
+
+console.log(Object.keys(begDict).length);
+console.log(Object.keys(interDict).length);
+console.log(Object.keys(expertDict).length);
+
+console.log('DONE: Finished loading dictionaries');
+app.set('dictionary', {
+  [utils.DictionaryLevel.BEGINNER]: begDict,
+  [utils.DictionaryLevel.INTERMEDIATE]: interDict,
+  [utils.DictionaryLevel.EXPERT]: expertDict
+});
 
 module.exports = app;

@@ -11,7 +11,7 @@ const validateWords = (dictionary, words) => {
       return;
     }
     word = word.toLowerCase();
-    let v = dictionary[word.length][word];
+    let v = dictionary[word];
     if (!v) {
       valid = false;
       invalidWords.push(word);
@@ -27,7 +27,7 @@ var router = express.Router();
 router.post('/', function(req, res, next) {
   let words = req.body.words;
   console.log('Validating words', words);
-  let dictionary = req.app.get('dictionary');
+  let dictionary = req.app.get('dictionary')['EXPERT'];
 
   let [valid, invalidWords] = validateWords(dictionary, words);
 

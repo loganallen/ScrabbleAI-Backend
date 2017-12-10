@@ -4,6 +4,12 @@ const EFFICIENCY_RATIO = 0.65;
 const SPECIAL_EFFICIENCY_RATIO = 0.5;
 const BINGO_BONUS = 50;
 
+const DictionaryLevel = keyMirror({
+  'BEGINNER': null,
+  'INTERMEDIATE': null,
+  'EXPERT': null
+});
+
 const BoardSpaceTypes = keyMirror({
   'START': null,
   'DEFAULT': null,
@@ -32,5 +38,6 @@ module.exports = {
   cloneBoard,
   EFFICIENCY_RATIO,
   SPECIAL_EFFICIENCY_RATIO,
-  BINGO_BONUS
+  BINGO_BONUS,
+  DictionaryLevel
 };
