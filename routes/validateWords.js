@@ -14,7 +14,7 @@ const validateWords = (dictionary, words) => {
     let v = dictionary[word];
     if (!v) {
       valid = false;
-      invalidWords.push(word);
+      invalidWords.push(word.toUpperCase());
     }
   });
 
