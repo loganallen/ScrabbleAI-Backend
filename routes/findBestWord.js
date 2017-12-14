@@ -281,7 +281,7 @@ const _convertPermToWord = (perm) => {
  *****************************************************************************/
 
 const findBestWordPlacement = (board, slots, hand, dictionary, isGreedy, level) => {
-  var dictionary = dictionary[level.toUpperCase()];
+  var dictionary = dictionary[level];
 
   // Build dictionary with hand permutations for each possible slot length
   console.log('Getting hand permutations...');
@@ -425,7 +425,7 @@ router.post('/', function(req, res, next) {
   let hand = req.body.hand;
   let firstTurn = req.body.firstTurn;
   let isGreedy = req.body.isGreedy;
-  let level = req.body.level;
+  let level = req.body.level.toUpperCase();
   let dictionary = req.app.get('dictionary');
 
   if (hand.length < 1) {
