@@ -13,6 +13,8 @@ var analyzeBoardConfiguration = require('./routes/analyzeBoardConfiguration');
 var validateTilePlacement = require('./routes/validateTilePlacement');
 var utils = require('./utils');
 
+console.log('Scrabble.ai booting up.');
+
 var app = express();
 
 // view engine setup
@@ -52,7 +54,6 @@ app.use(function(err, req, res, next) {
 });
 
 // Load all of the word dictionaries
-console.log('Generating word dictionaries...');
 var begDict = {};
 try {
   let filename = '../data/beginner_words.csv';
@@ -82,11 +83,11 @@ for (var i=2; i<13; i++) {
  }
 }
 
-console.log('DONE: Finished loading dictionaries');
 app.set('dictionary', {
   [utils.DictionaryLevel.BEGINNER]: begDict,
   [utils.DictionaryLevel.INTERMEDIATE]: interDict,
   [utils.DictionaryLevel.EXPERT]: expertDict
 });
 
+console.log('Waiting for requests...');
 module.exports = app;

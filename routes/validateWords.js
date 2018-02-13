@@ -1,4 +1,5 @@
 var express = require('express');
+var DEBUG = false;
 
 const validateWords = (dictionary, words) => {
   let valid = true;
@@ -26,7 +27,8 @@ var router = express.Router();
 /* POST validate words played on board. */
 router.post('/', function(req, res, next) {
   let words = req.body.words;
-  console.log('Validating words', words);
+
+  if (DEBUG) console.log('Validating words', words);
   let dictionary = req.app.get('dictionary')['EXPERT'];
 
   let [valid, invalidWords] = validateWords(dictionary, words);

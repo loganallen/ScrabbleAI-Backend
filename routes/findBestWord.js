@@ -2,6 +2,7 @@ var express = require('express');
 var vwRouter = require('./validateWords');
 var abcRouter = require('./analyzeBoardConfiguration');
 var utils = require('../utils');
+var DEBUG = false;
 
 var validateWords = vwRouter.validateWords;
 var analyzeBoardConfiguration = abcRouter.analyzeBoardConfiguration;
@@ -284,9 +285,9 @@ const findBestWordPlacement = (board, slots, hand, dictionary, isGreedy, level) 
   var dictionary = dictionary[level];
 
   // Build dictionary with hand permutations for each possible slot length
-  console.log('Getting hand permutations...');
+  if (DEBUG) console.log('Getting hand permutations...');
   let permutationsDict = _getPermutations(hand);
-  console.log('DONE: Got all hand permutations');
+  if (DEBUG) console.log('DONE: Got all hand permutations');
 
   let bestBoard = [];
   let bestPerm = [];
@@ -294,9 +295,8 @@ const findBestWordPlacement = (board, slots, hand, dictionary, isGreedy, level) 
   let bestPoints = [0, 0];
   let bestWords = [];
 
-  console.log(`Placing tiles in slots...`);
+  if (DEBUG) console.log(`Placing tiles in slots...`);
   slots.forEach((slot, idx) => {
-    // console.log(`Slot ${idx+1}`);
     // Skip slot if longer than hand length
     if (slot.length > hand.length) return;
 
@@ -320,7 +320,7 @@ const findBestWordPlacement = (board, slots, hand, dictionary, isGreedy, level) 
       let [words, points] = analyzeBoardConfiguration(tempBoard, perm.length);
       [valid, _] = validateWords(dictionary, words);
 
-      // If valid, save board configuration using efficiency
+      // If above beginner level, save board configuration using efficiency
       // ratio and board points
       if (valid) {
         let idx;
@@ -366,7 +366,7 @@ const findBestWordPlacement = (board, slots, hand, dictionary, isGreedy, level) 
   if (bestWords.length === 0) return [board, [], 0, hand];
 
   let idx = bestPoints[0] > 0 ? 0 : 1;
-  if (isGreedy) console.log('GREEDY');
+  if (isGreedy && DEBUG) console.log('GREEDY');
   console.log(`** [${bestWords[idx]}] | ${bestPoints[idx]} points | ratio: ${bestRatio[idx]}`);
 
   return [
@@ -438,15 +438,15 @@ router.post('/', function(req, res, next) {
     return;
   }
 
-  console.log('Generating slots...');
+  if (DEBUG) console.log('Generating slots...');
   let slots = generateSlots(board, firstTurn);
-  console.log(`DONE: Generated ${slots.length} unique slots`);
+  if (DEBUG) console.log(`DONE: Generated ${slots.length} unique slots`);
 
-  console.log('Finding best word placement...');
+  if (DEBUG) console.log('Finding best word placement...');
   let [newBoard, words, points, newHand] = findBestWordPlacement(
     board, slots, hand, dictionary, isGreedy, level
   );
-  console.log('DONE: Found best word placement');
+  if (DEBUG) console.log('DONE: Found best word placement');
 
   res.json({
     board: newBoard,

@@ -1,5 +1,6 @@
 var express = require('express');
 var utils = require('../utils');
+var DEBUG = false;
 
 const BoardSpaceTypes = utils.BoardSpaceTypes;
 const BINGO_BONUS = utils.BINGO_BONUS;
@@ -152,7 +153,7 @@ const _verticalSearch = (board, r, _c) => {
 
 // Generate new words on board and the total points
 const analyzeBoardConfiguration = (board, numTilesPlayed) => {
-  // console.log('Generating words and points...');
+  if (DEBUG) console.log('Generating words and points...');
   let [rows, cols] = getRowsAndColumns(board);
   let words = [];
   let totalPoints = 0;
